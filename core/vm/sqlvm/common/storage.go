@@ -592,23 +592,21 @@ func (bm *bitMap) decodeHeader() (lastRowID, rowCount uint64) {
 	return
 }
 
-func (bm *bitMap) encodeHeader(lastRowID, rowCount uint64) (header common.Hash) {
-	binary.BigEndian.PutUint64(header[:8], lastRowID)
-	binary.BigEndian.PutUint64(header[8:16], rowCount)
-	bm.headerData = header
-	return
+func (bm *bitMap) encodeHeader(lastRowID, rowCount uint64) {
+	binary.BigEndian.PutUint64(bm.headerData[:8], lastRowID)
+	binary.BigEndian.PutUint64(bm.headerData[8:16], rowCount)
 }
 
 func (bm *bitMap) increasePK() uint64 {
 	lastRowID, rowCount := bm.decodeHeader()
 	lastRowID++
 	rowCount++
-	bm.headerData = bm.encodeHeader(lastRowID, rowCount)
+	bm.encodeHeader(lastRowID, rowCount)
 	shift := lastRowID/256 + 1
 	slot := bm.storage.ShiftHashUint64(bm.headerSlot, shift)
 	data := bm.storage.GetState(bm.address, slot)
 	byteShift := (lastRowID & 255) / 8
-	data[byteShift] |= 1 << (lastRowID & 7)
+	data[byteShift] = setBit(data[byteShift], uint(lastRowID&7))
 	bm.dirtySlot[shift] = data
 	bm.storeDirtySlot()
 	return lastRowID
