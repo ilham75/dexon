@@ -608,20 +608,20 @@ func (bm *bitMap) increasePK() uint64 {
 	byteShift := (lastRowID & 255) / 8
 	data[byteShift] = setBit(data[byteShift], uint(lastRowID&7))
 	bm.dirtySlot[shift] = data
-	bm.storeDirtySlot()
+	bm.flushAll()
 	return lastRowID
 }
 
-func (bm *bitMap) storeHeader() {
+func (bm *bitMap) flushHeader() {
 	bm.storage.SetState(bm.address, bm.headerSlot, bm.headerData)
 }
 
-func (bm *bitMap) storeDirtySlot() {
+func (bm *bitMap) flushAll() {
 	for k, v := range bm.dirtySlot {
 		slot := bm.storage.ShiftHashUint64(bm.headerSlot, k)
 		bm.storage.SetState(bm.address, slot, v)
 	}
-	bm.storeHeader()
+	bm.flushHeader()
 	bm.dirtySlot = make(map[uint64]common.Hash)
 }
 
@@ -646,7 +646,7 @@ func (bm *bitMap) setPK(IDs []uint64) {
 		bm.dirtySlot[slotNum] = data
 	}
 	bm.encodeHeader(lastRowID, rowCount)
-	bm.storeDirtySlot()
+	bm.flushAll()
 }
 
 func (bm *bitMap) loadPK() []uint64 {
